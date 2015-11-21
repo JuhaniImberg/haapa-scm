@@ -1,0 +1,4 @@
+;;; -*- mode: scheme -*-
+
+(compile -O3 haapa.scm)
+(install-program 'haapa "haapa")

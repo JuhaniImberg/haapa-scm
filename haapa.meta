@@ -1,0 +1,9 @@
+;;; -*- mode: scheme -*-
+
+((author "Juhani Imberg")
+ (synopsis "i3bar compatible status line generator")
+ (category misc)
+ (license "MIT")
+ (files "haapa.scm" "haapa.setup")
+ (needs srfi-19
+        utf8))
