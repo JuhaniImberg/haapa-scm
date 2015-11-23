@@ -54,7 +54,7 @@
 
 (define (as-time val #!key (format "~T"))
   (if val
-      (format-date format (seconds->date val) #f)
+      (format-date format (seconds->date val #f) #f)
       #f))
 
 ;;; i3 display related functions
