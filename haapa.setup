@@ -1,4 +1,7 @@
 ;;; -*- mode: scheme -*-
 
+(compile -O3 -s haapa-lib.scm)
+(install-extension 'haapa-lib "haapa-lib.so")
+
 (compile -O3 haapa.scm)
 (install-program 'haapa "haapa")

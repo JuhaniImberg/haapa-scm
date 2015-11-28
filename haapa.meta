@@ -4,6 +4,7 @@
  (synopsis "i3bar compatible status line generator")
  (category misc)
  (license "MIT")
- (files "haapa.scm" "haapa.setup")
- (needs srfi-19
-        utf8))
+ (files "haapa.scm" "haapa-lib.scm" "haapa.setup")
+ (depends srfi-19
+          utf8)
+ (test-depends missbehave))
