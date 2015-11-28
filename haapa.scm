@@ -20,6 +20,7 @@
 
 (require-extension srfi-1
                    srfi-13
+                   srfi-69
                    posix
                    extras
                    ;; these must be installed
@@ -49,8 +50,22 @@
                       (- len 1)
                       characters))))
 
-(define (as-bar val #!key (len 10) (characters vertical-bar-characters))
-  (apply string (make-bar (* 8 val len) len characters)))
+(define default-bar-len 10)
+(define default-bar-characters vertical-bar-characters)
+
+(define (set-default-bar-length! val)
+  (set! default-bar-len val))
+(define (set-default-bar-characters! val)
+  (set! default-bar-characters
+        (case val
+          ('vertical vertical-bar-characters)
+          ('horizontal horizontal-bar-characters)
+          (else val))))
+
+(define (as-bar val #!key len characters)
+  (let ((len (if len len default-bar-len))
+        (characters (if characters characters default-bar-characters)))
+    (apply string (make-bar (* 8 val len) len characters))))
 
 (define (as-time val #!key (format "~T"))
   (if val
@@ -59,12 +74,34 @@
 
 ;;; i3 display related functions
 
+(define default-color-table
+  (alist->hash-table
+   '((black . "#272822")
+     (red . "#f92672")
+     (green . "#a6e22e")
+     (yellow . "#e6db74")
+     (blue . "#66d9ef")
+     (magenta . "#ed5ff0")
+     (cyan . "#a1efe4")
+     (white . "#f8f8f2")
+     (bright-black . "#75715e")
+     (bright-red . "#fc5c94")
+     (bright-green . "#c1f161")
+     (bright-yellow . "#f3ea98")
+     (bright-blue . "#8de6f7")
+     (bright-magenta . "#fe87f4")
+     (bright-cyan . "#bbf7ef")
+     (bright-white . "#f9f8f5"))))
+
 (define i3-start "{\"version\":1}[[]")
 
 (define (i3-make-segment parts #!key (color ""))
   (let ((parts (filter values (if (list? parts)
                                   parts
-                                  (list parts)))))
+                                  (list parts))))
+        (color (hash-table-ref/default default-color-table
+                                       color
+                                       color)))
     (if (not (null? parts))
         (string-append
          "{"
@@ -84,13 +121,16 @@
 
 ;;; battery related functions
 
-(define battery-path "/sys/class/power_supply/BAT0/")
+(define default-battery "BAT0")
+
+(define (battery-path)
+  (string-append "/sys/class/power_supply/" default-battery "/"))
 
 (define (battery-exists?)
-  (directory-exists? battery-path))
+  (directory-exists? (battery-path)))
 
 (define (get-battery-path name)
-  (string-append battery-path name))
+  (string-append (battery-path) name))
 
 (define (get-battery-int name)
   (with-input-from-file (get-battery-path name)
@@ -180,23 +220,23 @@
 
 ;;; what we want to get
 
-(define (make-line)
+(define (make-line-default)
   (i3-make-status
-   (i3-make-segment
-    (as-bar (get-cpu) len: 1 characters: horizontal-bar-characters)
-    color: "#f92672")
-   (i3-make-segment
-    (as-bar (get-mem-used) len: 1 characters: horizontal-bar-characters)
-    color: "#e6db74")
-   (if (battery-exists?)
-       (i3-make-segment
-        (list
-         (as-bar (get-battery-charge) len: 1 characters: horizontal-bar-characters)
-         (get-battery-status)
-         (as-time (get-battery-time)))
-        color: "#66d9ef")
-       #f)
    (i3-make-segment (format-date "~1 ~T" (current-date)))))
+
+(define make-line make-line-default)
+
+(define (set-make-line! fn)
+  (set! make-line fn))
+
+(define (user-configuration-path)
+  (string-append (get-environment-variable "HOME")
+                 "/.haapa.scm"))
+
+(define (load-user-configuration!)
+  (let ((fp (user-configuration-path)))
+    (if (file-exists? fp)
+        (load fp))))
 
 (define (loop-forever)
   (display (make-line))
@@ -205,5 +245,6 @@
   (loop-forever))
 
 (let ((arg (command-line-arguments)))
+  (load-user-configuration!)
   (display i3-start)
   (loop-forever))
